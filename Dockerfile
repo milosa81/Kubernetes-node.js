@@ -1,20 +1,48 @@
-FROM alpine
-# load any public updates from Alpine packages
-RUN apk update
-# upgrade any existing packages that have been updated
-RUN apk upgrade
-# add/install python3 and related libraries
-# https://pkgs.alpinelinux.org/package/edge/main/x86/python3
-RUN apk add nodejs nodejs-npm
-# make a directory for our application
-WORKDIR /src
-# move requirements file into the container
-COPY package.json .
-COPY package-lock.json .
-# install the library dependencies for this application
-RUN npm install --production
-# copy in the rest of our local source
-COPY . .
-# set the debug environment variable
-ENV DEBUG=kfd-nodejs:*
-CMD ["npm", "start"]
+var express = require('express');
+var path = require('path');
+var favicon = require('serve-favicon');
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
+
+var index = require('./routes/index');
+var users = require('./routes/users');
+var probes = require('./routes/probes');
+
+var app = express();
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
+
+// uncomment after placing your favicon in /public
+//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', index);
+app.use('/probes', probes)
+app.use('/users', users);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  var err = new Error('Not Found');
+  err.status = 404;
+  next(err);
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
+
+module.exports = app;
