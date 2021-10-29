@@ -3,7 +3,9 @@
 kind: Service
 apiVersion: v1
 metadata:
-    name: nodejs-service
+  name: nodejs-service
+  annotations:
+    prometheus.io/scrape: "true"
 spec:
   ports:
   - port: 3000
@@ -38,7 +40,7 @@ metadata:
   name: nodejs
 spec:
   serviceName: "nodejs-service"
-  replicas: 5
+  replicas: 3
   selector:
     matchLabels:
       app: nodejs
@@ -48,8 +50,21 @@ spec:
          app: nodejs
     spec:
       containers:
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent
+        ports:
+        - containerPort: 5775
+          protocol: UDP
+        - containerPort: 5778
+        - containerPort: 6831
+          protocol: UDP
+        - containerPort: 6832
+          protocol: UDP
+        command:
+        - "/go/bin/agent-linux"
+        - "--collector.host-port=jaeger-collector:14267"
       - name: nodejs
-        image: quay.io/kubernetes-for-developers/nodejs:0.3.0
+        image: quay.io/kubernetes-for-developers/nodejs:0.5.0
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
